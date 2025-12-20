@@ -266,7 +266,8 @@ useEffect(() => {
           </div>
           <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="mt-4 md:mt-0 px-4 py-2 rounded-lg text-sm font-medium
-             bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-10 transition-colors" >
+            bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors"
+          >
             {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
           </button>
         </header>
@@ -281,7 +282,7 @@ useEffect(() => {
             value={latest.value ? latest.value[1].toFixed(2) : "--"}
             unit="mm/day"
             textColor="text-gray-200"
-            bgColor="bg-zinc-800"
+            bgColor="bg-zinc-800 dark:bg-zinc-700"
           />
           <MetricCard
             icon="🌡️"
@@ -290,7 +291,7 @@ useEffect(() => {
             value={latest.temp ? latest.temp.toFixed(1) : "--"}
             unit="°C"
             textColor="text-gray-200"
-            bgColor="bg-zinc-800"
+            bgColor="bg-zinc-800 dark:bg-zinc-700"
           />
           <MetricCard
             icon="💨"
@@ -299,7 +300,7 @@ useEffect(() => {
             value={latest.humidity ? latest.humidity.toFixed(0) : "--"}
             unit="%"
             textColor="text-gray-800"
-            bgColor="bg-white"
+            bgColor="bg-white dark:bg-zinc-700"
           />
           <MetricCard
             icon="🌪️"
@@ -308,7 +309,7 @@ useEffect(() => {
             value={latest.wind ? latest.wind.toFixed(1) : "--"}
             unit="m/s"
             textColor="text-gray-800"
-            bgColor="bg-white"
+            bgColor="bg-white dark:bg-zinc-700"
           />
           <MetricCard
             icon="☀️"
@@ -317,7 +318,7 @@ useEffect(() => {
             value={latest.solar ? latest.solar.toFixed(0) : "--"}
             unit="W/m²"
             textColor="text-gray-800"
-            bgColor="bg-white"
+            bgColor="bg-white dark:bg-zinc-700"
           />
         </div>
 
