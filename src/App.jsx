@@ -239,7 +239,8 @@ const Dashboard = () => {
       : {};
 
   return (
-    <div id="app" className="w-full h-full bg-zinc-950 overflow-hidden">
+    <div id="app" className="w-full h-full bg-gray-100 dark:bg-zinc-950 overflow-hidden transition-colors">
+
       <div className="main-content max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
         <header className="mb-6 flex flex-col md:flex-row justify-between items-center">
           <div>
@@ -254,10 +255,16 @@ const Dashboard = () => {
               </span>
             </p>
           </div>
+          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="mt-4 md:mt-0 px-4 py-2 rounded-lg text-sm font-medium
+             bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-10 transition-colors" >
+            {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+          </button>
         </header>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className={`metric-card rounded-xl shadow-md p-4 ${bgColor} dark:bg-zinc-800`}>
+
           <MetricCard
             icon="💧"
             label="ET₀"
@@ -365,8 +372,8 @@ const MetricCard = ({
 );
 
 const ChartWrapper = ({ title, children }) => (
-  <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-    <h2 className="text-lg font-semibold text-gray-800 mb-4">{title}</h2>
+  <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-md p-4 md:p-6">
+    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{title}</h2>
     <div className="chart-container" style={{ height: 320 }}>
       {children}
     </div>
