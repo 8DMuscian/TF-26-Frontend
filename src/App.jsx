@@ -35,6 +35,16 @@ const Chart = ({ option, height = "100%" }) => {
 const Dashboard = () => {
   // Theme toggle state
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+   const [deviceStatus, setDeviceStatus] = useState("active");
+   // status indicator
+  
+   useEffect(() => {
+  const interval = setInterval(() => {
+    const s = ["active", "sleep", "off"];
+    setDeviceStatus(s[Math.floor(Math.random() * 3)]);
+  }, 20000); // every 20 sec
+   return () => clearInterval(interval);
+}, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -65,6 +75,12 @@ const Dashboard = () => {
     const wind = 2 + Math.random() * 3;
     const solar = Math.max(0, Math.sin(((hour - 6) * Math.PI) / 12) * 800 + Math.random() * 100);
     const predicted = Math.max(0, et0 + (Math.random() - 0.5) * 0.2);
+
+   
+
+ 
+
+
 
     return {
       name: timeObj.toString(),
@@ -236,13 +252,16 @@ const Dashboard = () => {
         </header>
 
         {/* Metric Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          
           <MetricCard icon="💧" label="ET₀" value={latest.value?.[1]?.toFixed(2) || "--"} unit="mm/day" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-blue-600 bg-blue-900" />
           <MetricCard icon="🌡️" label="TEMP" value={latest.temp?.toFixed(1) || "--"} unit="°C" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-red-600 bg-red-900" />
           <MetricCard icon="💨" label="HUM" value={latest.humidity?.toFixed(0) || "--"} unit="%" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-cyan-600 bg-cyan-100" />
           <MetricCard icon="🌪️" label="WIND" value={latest.wind?.toFixed(1) || "--"} unit="m/s" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-purple-600 bg-purple-100" />
           <MetricCard icon="☀️" label="SOLAR" value={latest.solar?.toFixed(0) || "--"} unit="W/m²" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-yellow-600 bg-yellow-100" />
+          <DeviceStatusCard status={deviceStatus} />
         </div>
+        
 
         {/* Charts */}
         {/* Charts Grid */}
@@ -286,6 +305,26 @@ const MetricCard = ({ icon, label, value, unit, textColor, bgColor, colorClass }
     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{unit}</div>
   </div>
 );
+const DeviceStatusCard = ({ status }) => {
+  const map = {
+    active: "🟢 Active",
+    sleep: "🟡 Sleep",
+    off: "🔴 Off",
+  };
+
+  return (
+    <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4">
+      <div className="text-sm text-gray-500 dark:text-gray-400">
+        Device Status
+      </div>
+      <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+        {map[status]}
+      </div>
+    </div>
+  );
+};
+
+
 
 const ChartWrapper = ({ title, children, height = 320 }) => (
   <div className={`bg-white dark:bg-zinc-900 rounded-xl shadow-md p-4 md:p-6`} style={{ height }}>
