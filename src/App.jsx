@@ -211,42 +211,66 @@ const Dashboard = () => {
               Last updated: <span className="font-mono">{new Date().toLocaleTimeString()}</span>
             </p>
           </div>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="mt-4 md:mt-0 px-4 py-2 rounded-lg text-sm font-medium
+          <div className="mt-4 md:mt-0 flex items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="px-4 py-2 rounded-lg text-sm font-medium
               bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors"
-          >
-            {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-          </button>
+            >
+              {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+            </button>
+
+            <button
+              onClick={() => {
+                alert("PDF downloaded!");
+              }}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+              bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors"
+            >
+              ⬇️ Download
+            </button>
+          </div>
+
+
+
         </header>
 
         {/* Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          <MetricCard icon="💧" label="ET₀" value={latest.value?.[1]?.toFixed(2) || "--"} unit="mm/day" textColor="text-gray-200" bgColor="bg-zinc-800 dark:bg-zinc-700" colorClass="text-blue-600 bg-blue-900"/>
-          <MetricCard icon="🌡️" label="TEMP" value={latest.temp?.toFixed(1) || "--"} unit="°C" textColor="text-gray-200" bgColor="bg-zinc-800 dark:bg-zinc-700" colorClass="text-red-600 bg-red-900"/>
-          <MetricCard icon="💨" label="HUM" value={latest.humidity?.toFixed(0) || "--"} unit="%" textColor="text-gray-800" bgColor="bg-white dark:bg-zinc-800" colorClass="text-cyan-600 bg-cyan-100"/>
-          <MetricCard icon="🌪️" label="WIND" value={latest.wind?.toFixed(1) || "--"} unit="m/s" textColor="text-gray-800" bgColor="bg-white dark:bg-zinc-800" colorClass="text-purple-600 bg-purple-100"/>
-          <MetricCard icon="☀️" label="SOLAR" value={latest.solar?.toFixed(0) || "--"} unit="W/m²" textColor="text-gray-800" bgColor="bg-white dark:bg-zinc-800" colorClass="text-yellow-600 bg-yellow-100"/>
+          <MetricCard icon="💧" label="ET₀" value={latest.value?.[1]?.toFixed(2) || "--"} unit="mm/day" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-blue-600 bg-blue-900" />
+          <MetricCard icon="🌡️" label="TEMP" value={latest.temp?.toFixed(1) || "--"} unit="°C" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-red-600 bg-red-900" />
+          <MetricCard icon="💨" label="HUM" value={latest.humidity?.toFixed(0) || "--"} unit="%" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-cyan-600 bg-cyan-100" />
+          <MetricCard icon="🌪️" label="WIND" value={latest.wind?.toFixed(1) || "--"} unit="m/s" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-purple-600 bg-purple-100" />
+          <MetricCard icon="☀️" label="SOLAR" value={latest.solar?.toFixed(0) || "--"} unit="W/m²" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-yellow-600 bg-yellow-100" />
         </div>
 
         {/* Charts */}
+        {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartWrapper title="ET₀ vs Time (Daily)">
             <Chart option={getEt0Option()} />
           </ChartWrapper>
+
           <ChartWrapper title="Temperature vs ET₀">
             <Chart option={getScatterOption("temp", "Temperature (°C)", colors.temp)} />
           </ChartWrapper>
+
           <ChartWrapper title="Humidity vs ET₀">
             <Chart option={getScatterOption("humidity", "Humidity (%)", colors.hum)} />
           </ChartWrapper>
+
           <ChartWrapper title="Wind Speed vs ET₀">
             <Chart option={getScatterOption("wind", "Wind Speed (m/s)", colors.wind)} />
           </ChartWrapper>
-          <ChartWrapper title="Actual vs Predicted ET₀" height={360}>
-            <Chart option={getComparisonOption()} />
-          </ChartWrapper>
+
+          {/* Full-width Actual vs Predicted ET₀ chart */}
+          <div className="lg:col-span-2">
+            <ChartWrapper title="Actual vs Predicted ET₀" height={360}>
+              <Chart option={getComparisonOption()} />
+            </ChartWrapper>
+          </div>
         </div>
+
       </div>
     </div>
   );
