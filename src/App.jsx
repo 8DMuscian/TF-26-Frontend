@@ -34,6 +34,15 @@ const Chart = ({ option, height = "100%" }) => {
 };
 
 const Dashboard = () => {
+  const [theme, setTheme] = useState(
+  localStorage.getItem("theme") || "dark"
+);
+
+useEffect(() => {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  localStorage.setItem("theme", theme);
+}, [theme]);
+
   const dataRef = useRef([]);
   // Use state to trigger re-render when data updates
   const [tick, setTick] = useState(0);
