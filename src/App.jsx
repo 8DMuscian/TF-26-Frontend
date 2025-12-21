@@ -35,16 +35,16 @@ const Chart = ({ option, height = "100%" }) => {
 const Dashboard = () => {
   // Theme toggle state
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
-   const [deviceStatus, setDeviceStatus] = useState("active");
-   // status indicator
-  
-   useEffect(() => {
-  const interval = setInterval(() => {
-    const s = ["active", "sleep", "off"];
-    setDeviceStatus(s[Math.floor(Math.random() * 3)]);
-  }, 20000); // every 20 sec
-   return () => clearInterval(interval);
-}, []);
+  const [deviceStatus, setDeviceStatus] = useState("active");
+  // status indicator
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const s = ["active", "sleep", "off"];
+      setDeviceStatus(s[Math.floor(Math.random() * 3)]);
+    }, 20000); // every 20 sec
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -67,20 +67,32 @@ const Dashboard = () => {
       0,
       0.5 + Math.sin(((hour - 6) * Math.PI) / 12) * 0.4 + Math.random() * 0.1
     );
-    const temp = 15 + Math.sin(((hour - 6) * Math.PI) / 12) * 10 + Math.random() * 2;
+    const temp =
+      15 + Math.sin(((hour - 6) * Math.PI) / 12) * 10 + Math.random() * 2;
     const humidity = Math.min(
       100,
-      Math.max(0, 60 - Math.sin(((hour - 6) * Math.PI) / 12) * 20 + Math.random() * 5)
+      Math.max(
+        0,
+        60 - Math.sin(((hour - 6) * Math.PI) / 12) * 20 + Math.random() * 5
+      )
     );
     const wind = 2 + Math.random() * 3;
-    const solar = Math.max(0, Math.sin(((hour - 6) * Math.PI) / 12) * 800 + Math.random() * 100);
+    const solar = Math.max(
+      0,
+      Math.sin(((hour - 6) * Math.PI) / 12) * 800 + Math.random() * 100
+    );
+    // simple soil moisture model: lower when ETc is higher
+    const soilMoisture = Math.max(
+      0,
+      Math.min(
+        100,
+        35 -
+          et0 * 8 +
+          Math.sin(((hour - 4) * Math.PI) / 12) * 3 +
+          (Math.random() - 0.5) * 3
+      )
+    );
     const predicted = Math.max(0, et0 + (Math.random() - 0.5) * 0.2);
-
-   
-
- 
-
-
 
     return {
       name: timeObj.toString(),
@@ -89,6 +101,7 @@ const Dashboard = () => {
       humidity,
       wind,
       solar,
+      soilMoisture,
       predicted,
     };
   };
@@ -144,7 +157,10 @@ const Dashboard = () => {
       formatter: (params) => {
         const p = params[0];
         const date = new Date(p.value[0]);
-        return `${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}<br/>ET₀: ${p.value[1].toFixed(3)}`;
+        return `${date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}<br/>ET<sub>c</sub>: ${p.value[1].toFixed(3)}`;
       },
     },
     grid: commonGrid,
@@ -156,10 +172,14 @@ const Dashboard = () => {
       splitLine: { show: true, lineStyle: { color: "#f3f4f6" } },
       axisLabel: { formatter: "{HH}:{mm}", color: "#666" },
     },
-    yAxis: { type: "value", name: "ET₀ (mm/day)", splitLine: { show: false } },
+    yAxis: {
+      type: "value",
+      name: "ET\nc (mm/day)",
+      splitLine: { show: false },
+    },
     series: [
       {
-        name: "ET₀",
+        name: "ETc",
         type: "line",
         showSymbol: false,
         data: dataRef.current,
@@ -178,17 +198,70 @@ const Dashboard = () => {
   const getScatterOption = (xKey, xName, color) => ({
     tooltip: {
       trigger: "item",
-      formatter: (p) => `${xName}: ${p.value[0].toFixed(1)}<br/>ET₀: ${p.value[1].toFixed(3)}`,
+      formatter: (p) =>
+        `${xName}: ${p.value[0].toFixed(
+          1
+        )}<br/>ET<sub>c</sub>: ${p.value[1].toFixed(3)}`,
     },
     grid: commonGrid,
-    xAxis: { type: "value", name: xName, scale: true, splitLine: { show: false } },
-    yAxis: { type: "value", name: "ET₀", splitLine: { show: false } },
+    xAxis: {
+      type: "value",
+      name: xName,
+      scale: true,
+      splitLine: { show: false },
+    },
+    yAxis: { type: "value", name: "ET\nc", splitLine: { show: false } },
     series: [
       {
         type: "scatter",
         symbolSize: 8,
         itemStyle: { color: color, opacity: 0.6 },
         data: dataRef.current.map((item) => [item[xKey], item.value[1]]),
+      },
+    ],
+  });
+
+  const getSoilMoistureOption = () => ({
+    tooltip: {
+      trigger: "axis",
+      formatter: (params) => {
+        const p = params[0];
+        const date = new Date(p.value[0]);
+        return `${date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}<br/>Soil Moisture: ${p.value[1].toFixed(1)}%`;
+      },
+    },
+    grid: commonGrid,
+    xAxis: {
+      type: "time",
+      min: todayStart.current,
+      max: todayEnd.current,
+      boundaryGap: false,
+      splitLine: { show: true, lineStyle: { color: "#f3f4f6" } },
+      axisLabel: { formatter: "{HH}:{mm}", color: "#666" },
+    },
+    yAxis: {
+      type: "value",
+      name: "Soil Moisture (%)",
+      min: 0,
+      max: 100,
+      splitLine: { show: false },
+    },
+    series: [
+      {
+        name: "Soil Moisture",
+        type: "line",
+        showSymbol: false,
+        // clamp values to be >= 30 for display
+        data: dataRef.current.map((d) => [
+          d.value[0],
+          Math.max(30, d.soilMoisture),
+        ]),
+        smooth: true,
+        lineStyle: { color: "#16a34a", width: 2 },
+        areaStyle: { color: "rgba(22,163,74,0.08)" },
       },
     ],
   });
@@ -206,12 +279,73 @@ const Dashboard = () => {
     },
     yAxis: { type: "value", splitLine: { show: false } },
     series: [
-      { name: "Actual", type: "line", showSymbol: false, smooth: true, lineStyle: { color: colors.primary }, data: dataRef.current },
-      { name: "Predicted", type: "line", showSymbol: false, smooth: true, lineStyle: { color: colors.accent, type: "dashed" }, data: dataRef.current.map((d) => [d.value[0], d.predicted]) },
+      {
+        name: "Actual",
+        type: "line",
+        showSymbol: false,
+        smooth: true,
+        lineStyle: { color: colors.primary },
+        data: dataRef.current,
+      },
+      {
+        name: "Predicted",
+        type: "line",
+        showSymbol: false,
+        smooth: true,
+        lineStyle: { color: colors.accent, type: "dashed" },
+        data: dataRef.current.map((d) => [d.value[0], d.predicted]),
+      },
     ],
   });
 
-  const latest = dataRef.current.length > 0 ? dataRef.current[dataRef.current.length - 1] : {};
+  const latest =
+    dataRef.current.length > 0
+      ? dataRef.current[dataRef.current.length - 1]
+      : {};
+
+  function NextIrrigationCard({ latest }) {
+    // Determine next irrigation schedule based on soil moisture
+    if (!latest || latest.soilMoisture === undefined) {
+      return (
+        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Next Irrigation
+          </div>
+          <div className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+            --
+          </div>
+        </div>
+      );
+    }
+
+    const moisture = latest.soilMoisture;
+    let minutesUntil = 720; // default 12h
+    let reason = "Scheduled";
+    if (moisture < 25) {
+      minutesUntil = 30;
+      reason = "Low soil moisture";
+    } else if (moisture < 40) {
+      minutesUntil = 180; // 3h
+      reason = "Moderate soil moisture";
+    }
+
+    const next = new Date(Date.now() + minutesUntil * 60 * 1000);
+    const nextStr = next.toLocaleString();
+
+    return (
+      <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          Next Irrigation
+        </div>
+        <div className="text-xl font-bold text-gray-900 dark:text-gray-200 mt-2">
+          {nextStr}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {reason}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-gray-100 dark:bg-zinc-950 transition-colors overflow-hidden">
@@ -220,86 +354,178 @@ const Dashboard = () => {
         <header className="mb-6 flex flex-col md:flex-row justify-between items-center">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              Weather Analytics Dashboard
+              Autonomous Zonal Irrigation Hub
             </h1>
-            <p className="text-lg text-gray-700 dark:text-gray-300">Daily View (00:00 - 24:00)</p>
+            <p className="text-lg text-gray-700 dark:text-gray-300">
+              Date: {new Date(todayStart.current).toLocaleDateString()}
+            </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Last updated: <span className="font-mono">{new Date().toLocaleTimeString()}</span>
+              Last updated:{" "}
+              <span className="font-mono">
+                {new Date().toLocaleTimeString()}
+              </span>
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex items-center gap-2">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="px-4 py-2 rounded-lg text-sm font-medium
-              bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors"
-            >
-              {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-            </button>
-
             <button
               onClick={() => {
                 alert("PDF downloaded!");
               }}
               className="px-4 py-2 rounded-lg text-sm font-medium
-              bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors"
-            >
+              bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors">
               ⬇️ Download
             </button>
+
+            {/* Compact inline device status placed left of the theme toggle */}
+            <div className="px-3 py-2 rounded-lg text-sm font-medium bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-100 shadow-sm">
+              {deviceStatus === "active"
+                ? "🟢 Active"
+                : deviceStatus === "sleep"
+                ? "🟡 Sleep"
+                : "🔴 Off"}
+            </div>
+
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="px-4 py-2 rounded-lg text-sm font-medium
+              bg-gray-200 text-gray-900 dark:bg-zinc-800 dark:text-gray-100 transition-colors">
+              {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
+            </button>
           </div>
-
-
-
         </header>
 
         {/* Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          
-          <MetricCard icon="💧" label="ET₀" value={latest.value?.[1]?.toFixed(2) || "--"} unit="mm/day" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-blue-600 bg-blue-900" />
-          <MetricCard icon="🌡️" label="TEMP" value={latest.temp?.toFixed(1) || "--"} unit="°C" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-red-600 bg-red-900" />
-          <MetricCard icon="💨" label="HUM" value={latest.humidity?.toFixed(0) || "--"} unit="%" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-cyan-600 bg-cyan-100" />
-          <MetricCard icon="🌪️" label="WIND" value={latest.wind?.toFixed(1) || "--"} unit="m/s" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-purple-600 bg-purple-100" />
-          <MetricCard icon="☀️" label="SOLAR" value={latest.solar?.toFixed(0) || "--"} unit="W/m²" textColor="text-gray-800  dark:text-gray-200" bgColor="bg-white dark:bg-zinc-800" colorClass="text-yellow-600 bg-yellow-100" />
-          <DeviceStatusCard status={deviceStatus} />
+          <MetricCard
+            icon="💧"
+            label={
+              <span>
+                ET<sub>c</sub>
+              </span>
+            }
+            value={latest.value?.[1]?.toFixed(2) || "--"}
+            unit="mm/day"
+            textColor="text-gray-800  dark:text-gray-200"
+            bgColor="bg-white dark:bg-zinc-800"
+            colorClass="text-blue-600 bg-blue-100"
+          />
+          <MetricCard
+            icon="🌡️"
+            label="TEMP"
+            value={latest.temp?.toFixed(1) || "--"}
+            unit="°C"
+            textColor="text-gray-800  dark:text-gray-200"
+            bgColor="bg-white dark:bg-zinc-800"
+            colorClass="text-red-600 bg-red-100"
+          />
+          <MetricCard
+            icon="💨"
+            label="HUM"
+            value={latest.humidity?.toFixed(0) || "--"}
+            unit="%"
+            textColor="text-gray-800  dark:text-gray-200"
+            bgColor="bg-white dark:bg-zinc-800"
+            colorClass="text-cyan-600 bg-cyan-100"
+          />
+          <MetricCard
+            icon="🌪️"
+            label="WIND"
+            value={latest.wind?.toFixed(1) || "--"}
+            unit="m/s"
+            textColor="text-gray-800  dark:text-gray-200"
+            bgColor="bg-white dark:bg-zinc-800"
+            colorClass="text-purple-600 bg-purple-100"
+          />
+          <MetricCard
+            icon="☀️"
+            label="SOLAR"
+            value={latest.solar?.toFixed(0) || "--"}
+            unit="W/m²"
+            textColor="text-gray-800  dark:text-gray-200"
+            bgColor="bg-white dark:bg-zinc-800"
+            colorClass="text-yellow-600 bg-yellow-100"
+          />
+          <NextIrrigationCard latest={latest} />
         </div>
-        
 
         {/* Charts */}
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartWrapper title="ET₀ vs Time (Daily)">
+          <div className="lg:col-span-2">
+            <ChartWrapper title="Soil Moisture vs Time" height={360}>
+              <Chart option={getSoilMoistureOption()} />
+            </ChartWrapper>
+          </div>
+
+          <ChartWrapper
+            title={
+              <span>
+                ET<sub>c</sub> vs Time (Daily)
+              </span>
+            }>
             <Chart option={getEt0Option()} />
           </ChartWrapper>
 
-          <ChartWrapper title="Temperature vs ET₀">
-            <Chart option={getScatterOption("temp", "Temperature (°C)", colors.temp)} />
+          <ChartWrapper
+            title={
+              <span>
+                Temperature vs ET<sub>c</sub>
+              </span>
+            }>
+            <Chart
+              option={getScatterOption("temp", "Temperature (°C)", colors.temp)}
+            />
           </ChartWrapper>
 
-          <ChartWrapper title="Humidity vs ET₀">
-            <Chart option={getScatterOption("humidity", "Humidity (%)", colors.hum)} />
+          <ChartWrapper
+            title={
+              <span>
+                Humidity vs ET<sub>c</sub>
+              </span>
+            }>
+            <Chart
+              option={getScatterOption("humidity", "Humidity (%)", colors.hum)}
+            />
           </ChartWrapper>
 
-          <ChartWrapper title="Wind Speed vs ET₀">
-            <Chart option={getScatterOption("wind", "Wind Speed (m/s)", colors.wind)} />
+          <ChartWrapper
+            title={
+              <span>
+                Wind Speed vs ET<sub>c</sub>
+              </span>
+            }>
+            <Chart
+              option={getScatterOption("wind", "Wind Speed (m/s)", colors.wind)}
+            />
           </ChartWrapper>
 
           {/* Full-width Actual vs Predicted ET₀ chart */}
           <div className="lg:col-span-2">
-            <ChartWrapper title="Actual vs Predicted ET₀" height={360}>
+            <ChartWrapper title="Actual vs Predicted ETc" height={360}>
               <Chart option={getComparisonOption()} />
             </ChartWrapper>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-const MetricCard = ({ icon, label, value, unit, textColor, bgColor, colorClass }) => (
+const MetricCard = ({
+  icon,
+  label,
+  value,
+  unit,
+  textColor,
+  bgColor,
+  colorClass,
+}) => (
   <div className={`metric-card ${bgColor} rounded-xl shadow-md p-4`}>
     <div className="flex items-center justify-between mb-2">
       <span className="text-2xl">{icon}</span>
-      <span className={`text-xs font-semibold ${colorClass} px-2 py-1 rounded`}>{label}</span>
+      <span className={`text-xs font-semibold ${colorClass} px-2 py-1 rounded`}>
+        {label}
+      </span>
     </div>
     <div className={`text-2xl font-bold ${textColor}`}>{value}</div>
     <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{unit}</div>
@@ -324,12 +550,14 @@ const DeviceStatusCard = ({ status }) => {
   );
 };
 
-
-
 const ChartWrapper = ({ title, children, height = 320 }) => (
-  <div className={`bg-white dark:bg-zinc-900 rounded-xl shadow-md p-4 md:p-6`} style={{ height }}>
-    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{title}</h2>
-    <div className="chart-container" style={{ height: '100%' }}>
+  <div
+    className={`bg-white dark:bg-zinc-900 rounded-xl shadow-md p-4 md:p-6`}
+    style={{ height }}>
+    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
+      {title}
+    </h2>
+    <div className="chart-container" style={{ height: "100%" }}>
       {children}
     </div>
   </div>
